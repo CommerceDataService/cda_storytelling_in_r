@@ -1,0 +1,295 @@
+---
+title: 'Part 2: 3-dimensional visuals'
+output: html_document
+---
+
+
+
+```{r echo=FALSE}
+#Code for processing data
+#Part 2 of Data Storytelling with R
+library(stringr)
+  #Set directory
+    setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r")
+
+  #COMBINE DATA
+    
+    #County data can be queried here by adding geographies (counties)
+      #demography: http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_14_1YR_DP02&prodType=table
+        data_d = read.csv("demographics.csv",skip=1)
+        
+      #economics: http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_14_1YR_DP03&prodType=table
+        data_e = read.csv("economics.csv",skip=1)
+        
+    #join data
+        data <- merge(data_d,data_e,id=c("Id","Id2","Geography"))
+        colnames(data)<-toupper(colnames(data))
+    
+    #select top records 
+      list <- c("ID","ID2","GEOGRAPHY",
+                "ESTIMATE..INCOME.AND.BENEFITS..IN.2014.INFLATION.ADJUSTED.DOLLARS....FAMILIES...MEDIAN.FAMILY.INCOME..DOLLARS.",
+                "PERCENT..PERCENTAGE.OF.FAMILIES.AND.PEOPLE.WHOSE.INCOME.IN.THE.PAST.12.MONTHS.IS.BELOW.THE.POVERTY.LEVEL...ALL.PEOPLE",
+                "PERCENT..EMPLOYMENT.STATUS...CIVILIAN.LABOR.FORCE...PERCENT.UNEMPLOYED"   ,
+                "ESTIMATE..HOUSEHOLDS.BY.TYPE...TOTAL.HOUSEHOLDS",
+                "PERCENT..EDUCATIONAL.ATTAINMENT...POPULATION.25.YEARS.AND.OVER...LESS.THAN.9TH.GRADE",
+                "PERCENT..EDUCATIONAL.ATTAINMENT...POPULATION.25.YEARS.AND.OVER...9TH.TO.12TH.GRADE..NO.DIPLOMA" )
+    
+    data <- data[,list]
+    hs <- 100-data[,8]-data[,9]
+    data <- cbind(data[,1:7],hs)
+    colnames(data) <- c("id","id2","geography","median_income","pct_poverty","emp_status","households","hs_grad")
+    data$state_fips <- substr(str_pad(as.character(data$id2), 5, pad = "0"),1,2)
+    data$median_income<-NULL
+  #Merge region codes
+      tables <- read.csv("state_codes.csv")
+      tables <- tables[,c(1,3,5)]
+      colnames(tables) <- c("region","state_fips","region_name")
+      tables$state_fips <- str_pad(as.character(tables$state_fips), 2, pad = "0")
+  
+  #Merge codes
+      data<-merge(tables,data,id="state_fips")
+      save(data,file="base_file.Rda")
+      write.csv(data,"base_file.csv",row.names=F)
+      
+```
+ 
+Sometimes two dimensional visuals are not enough. There is a lot more to the data that can be used to contextualize latent patterns. Often times, many analysts tend to think in two-dimensions -- like scatter plots. But there's more to it.  Let's say we were provided a nice clean set of data that contains the following:
+
+- county level data with county ID and region ID
+- variables: % unemployed, % in poverty, % with at least a HS degree
+
+What can you do with that data? Well, turns out that that these quantities are related. [3 lines of description go here]
+```{r, echo=F}
+    library(threejs)
+      
+      unemp <- data$emp_status
+      poverty <- data$pct_poverty
+      hs_grad <- data$hs_grad
+
+        data$colors <- "#011efe0"
+        data$colors[data$region==2] <- "#0bff01"
+        data$colors[data$region==3] <- "#fe00f6"
+        data$colors[data$region==4] <- "#fdfe02"
+        
+        data <- data[order(data$region),]
+      
+      #add labels to points
+      scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+                     axisLabels=c("unemployment","hs degree or above","poverty rate"),
+                     col=data$colors,
+                     labels=paste(data$region_name,": ",data$geography), 
+                     size=0.5,
+                    renderer="canvas")
+```
+
+
+How did we get to this?
+```{r}
+#Set working directory
+      setwd("/Users/sigmamonstr/Google Drive/DOC/0_Project Tracking/Commerce Academy/Storytelling_with_R/ACS_14")
+      
+#Load in data
+      load("base_file.Rda")
+      head(data)
+
+#Load in Threejs library      
+      library(threejs)
+```
+
+We can see that there are direct relationships between unemployment, poverty and education attainment. But there isn't much detail and the graphs aren't pretty.
+```{r}
+        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad)
+```
+
+Let's stylize the plots. First let's name the axes with *axisLabels*, which accepts a vector of axis names. The order matters and is as follows: x-axis, z-axis, y-axis
+```{r}
+      #Note that axis Labels should follow this order= c(x, z, y)
+        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+                     axisLabels=c("unemployment","hs degree or above","poverty rate"))    
+```
+
+Now let's change the rendering engine to give more depth to the plot. We do so by changing *renderer = "canvas"*. This just tells R threejs to use a different package to render the points
+```{r}
+      #Depth using render
+        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+                       axisLabels=c("unemployment","hs degree or above","poverty rate"),
+                       renderer="canvas")   
+```
+
+Now, let's set the color of the points, resize the points, and flip the y axis so it's ascending from the origin. To do so, we:
+- set *col = "slategrey"*
+- set *flip.y = FALSE*
+- set *size = 0.5*
+
+```{r}
+      #Point size, color, don't flip y axis
+        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+                       axisLabels=c("unemployment","hs degree or above","poverty rate"),
+                       renderer="canvas",  flip.y=FALSE, col="slategrey",
+                       size=0.5)   
+```
+
+Ultimately, we want to find more patterns. By using color, we can group regions by color. We can see some regions are worse off than others. But which? Turns out there are 4 regions:
+
+```{r}
+   unique(data$region_name)     
+    unique(data$region)  
+```
+
+First, let's set each region to a different color by first creating a new variable for colors *data$colors*, then assign a hexcode to each region.
+```{r}
+      #Set up colors by 
+        data$colors <- ""
+         data$colors[data$region==1] <- "#011EFE0"
+         data$colors[data$region==2] <- "#0BFF01"
+         data$colors[data$region==3] <- "#FE00F6"
+         data$colors[data$region==4] <- "#FDFE02"
+        
+
+```
+
+Now, let's set *col= data$colors* so that R knows which color corresponds to each of the 3000 points.
+```{r}
+      data <- data[order(data$region),]
+      #Grouped patterns
+        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+                       axisLabels=c("unemployment","hs degree or above","poverty rate"),
+                       col=data$colors,  flip.y=FALSE, 
+                       renderer="canvas", 
+                       size=0.5)   
+```
+
+It's a bit annoying to look at the chart without knowing which point corresponds to which county. 
+Let's add labels for each point that show up upon mousing over. 
+```{r}
+      #add labels to points
+      scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+                     axisLabels=c("unemployment","hs degree or above","poverty rate"),
+                     col=data$colors, flip.y=FALSE, 
+                     labels=paste(data$region_name,": ",data$geography), 
+                     size=0.5,
+                    renderer="canvas")
+      
+```
+
+In short, we can tell the following key insights from this graph.
+
+###Part 2: Maps
+Sometimes graphs don't get the point across. Maps, while over used, can provide some better indication of patterns. 
+
+Based on our 3-d graphs, we could see clustering of regions's economic performance. We can see the mess of points more clearly on a map. Observations:
+
+
+```{r echo=F, warning=FALSE, message=FALSE}
+      
+      setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r/cb_2014_us_county_20m")
+      library(leaflet)
+      library(rgdal)
+        
+      shp = readOGR("cb_2014_us_county_20m.shp","cb_2014_us_county_20m")
+    
+      data$GEOID <- str_pad(as.character(data$id2), 5, pad = "0")
+      shp@data$GEOID <- as.character(shp@data$GEOID)
+      shp <- merge(shp,data,id="GEOID")
+      
+      
+      palette <- colorQuantile("YlGn", NULL, n = 30)
+      
+      state_popup <- paste0("<strong>County: </strong>", 
+                            shp@data$geography, 
+                            "<br><strong>Poverty Rate (%): </strong>", 
+                            shp@data$pct_poverty)
+      
+      leaflet(data = shp) %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(lng = -98.3, lat = 39.5, zoom = 4)  %>%
+        addPolygons(fillColor = ~palette(pct_poverty), 
+                    fillOpacity = 0.8, 
+                    color = "#BDBDC3", 
+                    weight = 0.1, 
+                    popup = state_popup)     
+        
+```
+
+
+###Getting started
+We can use the leaflet library to bring a geographic spin to the data. To initiate a map, we only need to open the leaflet library, then run the following:
+```{r}
+      library(leaflet)
+      leaflet()  
+```
+
+You'll see that the map is blank with a zoom control panel on the upper left. That's because the map doesn't have data in it. There are dozens on free layers we can use:
+
+- Stamen.Toner
+- CartoDB.Positron
+- HikeBike.HikeBike
+- CartoDB.DarkMatter
+
+```{r}
+        leaflet() %>%
+        addProviderTiles("Stamen.Toner") 
+```
+
+```{r}
+        leaflet() %>%
+        addProviderTiles("CartoDB.Positron") 
+```
+
+Now let's center and zoom in on the contiguous US
+```{r}
+        leaflet() %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(lng = -98.3, lat = 39.5, zoom = 4) 
+```
+
+We now data. Get shapefile. (diagram of shapes goes here)
+```{r}
+      shape_direct <- function(url, shp) {
+        library(rgdal)
+        temp = tempfile()
+        download.file(url, temp) ##download the URL taret to the temp file
+        unzip(temp,exdir=getwd()) ##unzip that file
+        return(readOGR(paste(shp,".shp",sep=""),shp))
+      }
+      
+      shp <- shape_direct(url="http://www2.census.gov/geo/tiger/GENZ2014/shp/cb_2014_us_county_20m.zip",
+                          shp= "cb_2014_us_county_20m")
+```
+
+Add shapefile to code
+```{r}
+        leaflet(data=shp) %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(lng = -98.3, lat = 39.5, zoom = 4) %>%
+        addPolygons(fillColor = "blue", 
+                    fillOpacity = 0.8, 
+                    color = "white", 
+                    weight = 0.5)     
+```
+
+The shapefile on its own doesn't have the data from the scatter chart portion. We need to join the data.
+
+```{r}
+   data$GEOID <- str_pad(as.character(data$id2), 5, pad = "0")
+      shp@data$GEOID <- as.character(shp@data$GEOID)
+      shp <- merge(shp,data,id="GEOID")
+      
+      
+      pal <- colorQuantile("YlGn", NULL, n = 30)
+      
+      state_popup <- paste0("<strong>County: </strong>", 
+                            shp@data$geography, 
+                            "<br><strong>Poverty Rate (%): </strong>", 
+                            shp@data$pct_poverty)
+      
+      leaflet(data = shp) %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(lng = -98.3, lat = 39.5, zoom = 4) %>%
+        addPolygons(fillColor = ~pal(pct_poverty), 
+                    fillOpacity = 0.8, 
+                    color = "#BDBDC3", 
+                    weight = 0.1, 
+                    popup = state_popup)     
+        
+```

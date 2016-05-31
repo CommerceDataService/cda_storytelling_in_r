@@ -1,0 +1,117 @@
+load("/Users/sigmamonstr/Google Drive/DOC/034-VIIRS/VIIRS_composites/output/d_tracking.R")
+list.files()
+View(df)
+View(output)
+View(tracking)
+list.flsl
+ls()
+head(tracking)
+View()
+load("/Users/sigmamonstr/Google Drive/DOC/034-VIIRS/VIIRS_composites/output/d_tracking_lasso.R")
+View(tracking)
+install.package(XQuartz)
+install.packages(XQuartz)
+tracking
+hist(tracking$rho_lasso_test)
+plot(tracking$rho_lasso_test,tracking$n_train)
+aggregate(Sepal.Length ~ Species, iris, length)
+nrow(Sepal.Length)
+nrow(iris)
+vec <- round(runif(10000),2)
+table(vec)
+vec <- round(runif(10000),2)
+vec <- round(runif(10000),1)
+vec <- round(runif(10000),2)
+vec1 <- round(runif(10000),1)
+tab = cbind(vec,vec1)
+tab
+tab = as.data.frame(cbind(vec,vec1))
+colnames(tab)<-c("vals","groups")
+aggregate(vals ~ groups, tab, length)
+##CREATE A DATASET#
+#
+#We can use a random number generator to produce a number between 0 and 1#
+  runif(1)#
+#
+#Let's create a list of 100#
+  runif(100)
+rnorm(100,1,1)
+b = rnorm(100,0,3)
+hist(b)
+a=runif(100)
+plot(a,b)
+a=runif(10000)
+b = rnorm(10000,0,3)
+plot(a,b)
+cbind(a,b)
+asd = cbind(a,b)
+colnames(asd)
+colnames(asd)<-c("asd","dsa")
+colname
+str(asd)
+class(asd)
+a <- as.character(a)
+asd = cbind(a,b)
+asd
+load("/Users/sigmamonstr/Google Drive/DOC/034-VIIRS/VIIRS_composites/output/d_tracking_lasso.R")
+list.files()
+ls()
+View(tracking)
+library(beaR)
+datatable(beaSearch("tech"))
+library(DT)
+datatable(beaSearch("tech"))
+x = readImage(system.file("images", "sample.png", package="EBImage"))#
+  display(x)#
+  ## threshold using Otsu's method#
+  y = x > otsu(x)#
+  display(y)
+library(EBImage)
+y
+x = readImage(system.file("images", "sample.png", package="EBImage"))#
+  display(x)#
+  ## threshold using Otsu's method#
+  y = x > otsu(x)#
+  display(y)
+display(x)
+display(y)
+5000*3000
+library(leaflet)#
+      leaflet()
+setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r/")#
+      library(leaflet)#
+      library(rgdal)#
+      shp = readOGR("cb_2014_us_county_20m.shp","cb_2014_us_county_20m")
+shp = readOGR("shp/cb_2014_us_county_20m.shp","cb_2014_us_county_20m")
+leaflet(data = shp) %>%#
+        addPolygons(fillColor = "blue")
+str(shp)
+summary(shp)
+leaflet(data = shp) %>% #
+addPolygons(fillColor = "blue") %>%#
+addProviderTiles("CartoDB.Positron") %>%#
+setView(lng = -98.3,lat = 39.5, zoom = 4)
+leaflet(data = shp) %>% #
+addPolygons(fillColor = "blue",fillOpacity = 0.8, #
+                    color = "white", #
+                    weight = 0.5) %>%#
+addProviderTiles("CartoDB.Positron") %>%#
+setView(lng = -98.3,lat = 39.5, zoom = 4)
+leaflet(data = shp) %>% #
+addPolygons(fillColor ="blue", fillOpacity= 0.8,color = "white",#
+weight = 0.5) %>%#
+addProviderTiles("CartoDB.Positron") %>%#
+setView(lng = -98.3,lat = 39.5, zoom = 4)
+install.packages(“stringr”)
+install.packages("stringr")
+colnames(shp)
+setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r/cb_2014_us_county_20m")#
+      library(leaflet)#
+      library(rgdal)
+setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r/")
+library(leaflet)#
+      library(rgdal)#
+      shp = readOGR("shp/cb_2014_us_county_20m.shp","cb_2014_us_county_20m")
+colnames(shp)
+colnames(shp@data)
+str(shp@data)
