@@ -1,70 +1,45 @@
 ---
-title: 'Part 2: 3-dimensional visuals'
+title: 'Storytelling with R'
 output: html_document
 ---
 
+##Get data 
+In order to get the data for this tutorial, you'll need to get an API key to use the Census API service [here](http://api.census.gov/data/key_signup.html). Once you have it, assign the key to the variable *api_key*.
 
-
-```{r echo=FALSE}
-#Code for processing data
-#Part 2 of Data Storytelling with R
-library(stringr)
-  #Set directory
-    setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r")
-
-  #COMBINE DATA
-    
-    #County data can be queried here by adding geographies (counties)
-      #demography: http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_14_1YR_DP02&prodType=table
-        data_d = read.csv("demographics.csv",skip=1)
-        
-      #economics: http://factfinder.census.gov/faces/tableservices/jsf/pages/productview.xhtml?pid=ACS_14_1YR_DP03&prodType=table
-        data_e = read.csv("economics.csv",skip=1)
-        
-    #join data
-        data <- merge(data_d,data_e,id=c("Id","Id2","Geography"))
-        colnames(data)<-toupper(colnames(data))
-    
-    #select top records 
-      list <- c("ID","ID2","GEOGRAPHY",
-                "ESTIMATE..INCOME.AND.BENEFITS..IN.2014.INFLATION.ADJUSTED.DOLLARS....FAMILIES...MEDIAN.FAMILY.INCOME..DOLLARS.",
-                "PERCENT..PERCENTAGE.OF.FAMILIES.AND.PEOPLE.WHOSE.INCOME.IN.THE.PAST.12.MONTHS.IS.BELOW.THE.POVERTY.LEVEL...ALL.PEOPLE",
-                "PERCENT..EMPLOYMENT.STATUS...CIVILIAN.LABOR.FORCE...PERCENT.UNEMPLOYED"   ,
-                "ESTIMATE..HOUSEHOLDS.BY.TYPE...TOTAL.HOUSEHOLDS",
-                "PERCENT..EDUCATIONAL.ATTAINMENT...POPULATION.25.YEARS.AND.OVER...LESS.THAN.9TH.GRADE",
-                "PERCENT..EDUCATIONAL.ATTAINMENT...POPULATION.25.YEARS.AND.OVER...9TH.TO.12TH.GRADE..NO.DIPLOMA" )
-    
-    data <- data[,list]
-    hs <- 100-data[,8]-data[,9]
-    data <- cbind(data[,1:7],hs)
-    colnames(data) <- c("id","id2","geography","median_income","pct_poverty","emp_status","households","hs_grad")
-    data$state_fips <- substr(str_pad(as.character(data$id2), 5, pad = "0"),1,2)
-    data$median_income<-NULL
-  #Merge region codes
-      tables <- read.csv("state_codes.csv")
-      tables <- tables[,c(1,3,5)]
-      colnames(tables) <- c("region","state_fips","region_name")
-      tables$state_fips <- str_pad(as.character(tables$state_fips), 2, pad = "0")
-  
-  #Merge codes
-      data<-merge(tables,data,id="state_fips")
-      save(data,file="base_file.Rda")
-      write.csv(data,"base_file.csv",row.names=F)
-      
+```{r eval=F}
+api_key <- "put api key here"
 ```
- 
-Sometimes two dimensional visuals are not enough. There is a lot more to the data that can be used to contextualize latent patterns. Often times, many analysts tend to think in two-dimensions -- like scatter plots. But there's more to it.  Let's say we were provided a nice clean set of data that contains the following:
+
+Now that you have the API key, run the following code that is available on the Storytelling repository on Github. This will automatically pull in code that and assemble the dataset for the visualizations in this section.
+```{r eval=F}
+source("https://raw.githubusercontent.com/CommerceDataService/cda_storytelling_in_r/gh-pages/get_data.R")
+
+```
+```{r echo=F, message=F, warning=F}
+api_key <- "d7771f8fdc9a6508ea49c78e59c79318e4f46476"
+source("https://raw.githubusercontent.com/CommerceDataService/cda_storytelling_in_r/gh-pages/get_data.R")
+
+```
+
+##What's in the data?
+Sometimes two dimensional visuals are not enough. There is a lot more to the data that can be used to contextualize latent patterns. Often times, many analysts tend to think in two-dimensions -- like scatter plots. But there's more to it.  In the dataset that you've just imported, it has the following characteristics:
+
+```{r}
+summary(data)
+```
+
+Let's say we were provided a nice clean set of data that contains the following:
 
 - county level data with county ID and region ID
 - variables: % unemployed, % in poverty, % with at least a HS degree
 
-What can you do with that data? Well, turns out that that these quantities are related. [3 lines of description go here]
+What can you do with that data? Well, turns out that that these quantities are related. 
 ```{r, echo=F}
-    library(threejs)
+library(threejs)
       
-      unemp <- data$emp_status
+      unemp <- data$pct_unemp
       poverty <- data$pct_poverty
-      hs_grad <- data$hs_grad
+      pct_hs_grad <- data$pct_hs_grad
 
         data$colors <- "#011efe0"
         data$colors[data$region==2] <- "#0bff01"
@@ -74,7 +49,7 @@ What can you do with that data? Well, turns out that that these quantities are r
         data <- data[order(data$region),]
       
       #add labels to points
-      scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+      scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad,   
                      axisLabels=c("unemployment","hs degree or above","poverty rate"),
                      col=data$colors,
                      labels=paste(data$region_name,": ",data$geography), 
@@ -82,15 +57,8 @@ What can you do with that data? Well, turns out that that these quantities are r
                     renderer="canvas")
 ```
 
-
 How did we get to this?
 ```{r}
-#Set working directory
-      setwd("/Users/sigmamonstr/Google Drive/DOC/0_Project Tracking/Commerce Academy/Storytelling_with_R/ACS_14")
-      
-#Load in data
-      load("base_file.Rda")
-      head(data)
 
 #Load in Threejs library      
       library(threejs)
@@ -98,20 +66,20 @@ How did we get to this?
 
 We can see that there are direct relationships between unemployment, poverty and education attainment. But there isn't much detail and the graphs aren't pretty.
 ```{r}
-        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad)
+        scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad)
 ```
 
 Let's stylize the plots. First let's name the axes with *axisLabels*, which accepts a vector of axis names. The order matters and is as follows: x-axis, z-axis, y-axis
 ```{r}
       #Note that axis Labels should follow this order= c(x, z, y)
-        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+        scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad,   
                      axisLabels=c("unemployment","hs degree or above","poverty rate"))    
 ```
 
 Now let's change the rendering engine to give more depth to the plot. We do so by changing *renderer = "canvas"*. This just tells R threejs to use a different package to render the points
 ```{r}
       #Depth using render
-        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+        scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad, 
                        axisLabels=c("unemployment","hs degree or above","poverty rate"),
                        renderer="canvas")   
 ```
@@ -123,7 +91,7 @@ Now, let's set the color of the points, resize the points, and flip the y axis s
 
 ```{r}
       #Point size, color, don't flip y axis
-        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+        scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad, 
                        axisLabels=c("unemployment","hs degree or above","poverty rate"),
                        renderer="canvas",  flip.y=FALSE, col="slategrey",
                        size=0.5)   
@@ -140,19 +108,17 @@ First, let's set each region to a different color by first creating a new variab
 ```{r}
       #Set up colors by 
         data$colors <- ""
-         data$colors[data$region==1] <- "#011EFE0"
-         data$colors[data$region==2] <- "#0BFF01"
-         data$colors[data$region==3] <- "#FE00F6"
-         data$colors[data$region==4] <- "#FDFE02"
-        
-
+        data$colors[data$region==1] <- "#011efe0"
+        data$colors[data$region==2] <- "#0bff01"
+        data$colors[data$region==3] <- "#fe00f6"
+        data$colors[data$region==4] <- "#fdfe02"
 ```
 
 Now, let's set *col= data$colors* so that R knows which color corresponds to each of the 3000 points.
 ```{r}
       data <- data[order(data$region),]
       #Grouped patterns
-        scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad, 
+        scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad, 
                        axisLabels=c("unemployment","hs degree or above","poverty rate"),
                        col=data$colors,  flip.y=FALSE, 
                        renderer="canvas", 
@@ -163,9 +129,9 @@ It's a bit annoying to look at the chart without knowing which point corresponds
 Let's add labels for each point that show up upon mousing over. 
 ```{r}
       #add labels to points
-      scatterplot3js(data$emp_status, data$pct_poverty,data$hs_grad,   
+      scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad,   
                      axisLabels=c("unemployment","hs degree or above","poverty rate"),
-                     col=data$colors, flip.y=FALSE, 
+                     col=data$colors,
                      labels=paste(data$region_name,": ",data$geography), 
                      size=0.5,
                     renderer="canvas")
@@ -177,23 +143,29 @@ In short, we can tell the following key insights from this graph.
 ###Part 2: Maps
 Sometimes graphs don't get the point across. Maps, while over used, can provide some better indication of patterns. 
 
-Based on our 3-d graphs, we could see clustering of regions's economic performance. We can see the mess of points more clearly on a map. Observations:
-
+Based on our 3-d graphs, we could see clustering of regions's economic performance. We can see the mess of points more clearly on a map. 
 
 ```{r echo=F, warning=FALSE, message=FALSE}
       
-      setwd("/Users/sigmamonstr/Github/cda_storytelling_in_r/cb_2014_us_county_20m")
       library(leaflet)
-      library(rgdal)
+      library(stringr)
         
-      shp = readOGR("cb_2014_us_county_20m.shp","cb_2014_us_county_20m")
-    
-      data$GEOID <- str_pad(as.character(data$id2), 5, pad = "0")
+      shape_direct <- function(url, shp) {
+        library(rgdal)
+        temp = tempfile()
+        download.file(url, temp) ##download the URL taret to the temp file
+        unzip(temp,exdir=getwd()) ##unzip that file
+        return(readOGR(paste(shp,".shp",sep=""),shp))
+      }
+      
+      shp <- shape_direct(url="http://www2.census.gov/geo/tiger/GENZ2014/shp/cb_2014_us_county_20m.zip",
+                          shp= "cb_2014_us_county_20m")
+      
       shp@data$GEOID <- as.character(shp@data$GEOID)
       shp <- merge(shp,data,id="GEOID")
       
       
-      palette <- colorQuantile("YlGn", NULL, n = 30)
+      pal <- colorQuantile("YlGn", NULL, n = 30)
       
       state_popup <- paste0("<strong>County: </strong>", 
                             shp@data$geography, 
@@ -203,7 +175,7 @@ Based on our 3-d graphs, we could see clustering of regions's economic performan
       leaflet(data = shp) %>%
         addProviderTiles("CartoDB.Positron") %>%
         setView(lng = -98.3, lat = 39.5, zoom = 4)  %>%
-        addPolygons(fillColor = ~palette(pct_poverty), 
+        addPolygons(fillColor = ~pal(pct_poverty), 
                     fillOpacity = 0.8, 
                     color = "#BDBDC3", 
                     weight = 0.1, 
@@ -236,15 +208,17 @@ You'll see that the map is blank with a zoom control panel on the upper left. Th
         addProviderTiles("CartoDB.Positron") 
 ```
 
-Now let's center and zoom in on the contiguous US
+Now let's center and zoom in on the contiguous US at coordinates lon = -98.3 and lat = 39.5
 ```{r}
         leaflet() %>%
         addProviderTiles("CartoDB.Positron") %>%
         setView(lng = -98.3, lat = 39.5, zoom = 4) 
 ```
 
-We now data. Get shapefile. (diagram of shapes goes here)
+We now need to download the shapefiles, which are a popular geospatial vector data format for geographic information system (GIS) software. Shapefiles allow for rendering of various types of data, including points (e.g. coordinates), polygons (e.g. county boundaries), and lines (e.g. streets, creeks). We're going to use the US County Shapefile from the US Census: [http://www2.census.gov/geo/tiger/GENZ2014/shp/cb_2014_us_county_20m.zip](http://www2.census.gov/geo/tiger/GENZ2014/shp/cb_2014_us_county_20m.zip). To download it and load it into R, we'll need to first install the *rgdal* library. We've also written a function *shape_direct* that can be run to import the shapefile and assign it to an object *shp*.
+
 ```{r}
+  
       shape_direct <- function(url, shp) {
         library(rgdal)
         temp = tempfile()
@@ -257,7 +231,7 @@ We now data. Get shapefile. (diagram of shapes goes here)
                           shp= "cb_2014_us_county_20m")
 ```
 
-Add shapefile to code
+With the new shapefile now imported, we can now set *data = shp*.
 ```{r}
         leaflet(data=shp) %>%
         addProviderTiles("CartoDB.Positron") %>%
@@ -268,28 +242,67 @@ Add shapefile to code
                     weight = 0.5)     
 ```
 
-The shapefile on its own doesn't have the data from the scatter chart portion. We need to join the data.
-
+In order to draw insight from a map, we'll need to color code county polygons. This is known as a choropleth map -- each county is color coded with respect to a certain value of a given variable like %poverty. The shapefile on its own doesn't have the socioeconomic data and we'll need to join the data to the shapefile. Let's just quickly check the data formats of the primary key *GEOID*.
 ```{r}
-   data$GEOID <- str_pad(as.character(data$id2), 5, pad = "0")
+   str(shp@data$GEOID)
+   str(data$GEOID)
+```
+
+Since the *shp* primary key is in a factor format and the *data* primary key is in string or character format, we'll need to conform the formats, preferrably to strings. Then, we can merge the two datasets.
+```{r}
       shp@data$GEOID <- as.character(shp@data$GEOID)
       shp <- merge(shp,data,id="GEOID")
-      
-      
-      pal <- colorQuantile("YlGn", NULL, n = 30)
-      
-      state_popup <- paste0("<strong>County: </strong>", 
+```
+
+With the merged datasets, we'll now need to specify a color scheme. Using *colorQuantile*, we can create a create a function that will slice any continuous variable into bins and assign colors to each bin. The syntax is as follows:
+```{r, eval=F}
+      pal <- colorQuantile(<Color Code>, <variable>, n = <number of bins>)
+```
+
+For our example, we'll use a Yellow-Green palette, leave <variable> as NULL so that we can re-use the palette function, and set the number of bins to 30.
+```{r}
+
+      palette <- colorQuantile("YlGn", NULL, n = 30)
+```
+
+Next we will add popup text for when a user clicks on a county in a map.
+```{r}
+      county_popup <- paste0("<strong>County: </strong>", 
                             shp@data$geography, 
                             "<br><strong>Poverty Rate (%): </strong>", 
                             shp@data$pct_poverty)
+```
+
+Now we'll pull it all together.
+```{r}
+      leaflet(data = shp) %>%
+        addProviderTiles("CartoDB.Positron") %>%
+        setView(lng = -98.3, lat = 39.5, zoom = 4) %>%
+        addPolygons(fillColor = ~palette(pct_poverty), 
+                    fillOpacity = 0.8, 
+                    color = "#BDBDC3", 
+                    weight = 0.1, 
+                    popup = county_popup)     
+        
+```
+
+We can run the same graph for *pct_unemp* by swapping out *pct_poverty*
+
+```{r}
+      
+       county_popup <- paste0("<strong>County: </strong>", 
+                            shp@data$geography, 
+                            "<br><strong>Unemp (%): </strong>", 
+                            shp@data$pct_unemp)
       
       leaflet(data = shp) %>%
         addProviderTiles("CartoDB.Positron") %>%
         setView(lng = -98.3, lat = 39.5, zoom = 4) %>%
-        addPolygons(fillColor = ~pal(pct_poverty), 
+        addPolygons(fillColor = ~palette(pct_unemp), 
                     fillOpacity = 0.8, 
                     color = "#BDBDC3", 
                     weight = 0.1, 
-                    popup = state_popup)     
+                    popup = county_popup)     
         
+```   
 ```
