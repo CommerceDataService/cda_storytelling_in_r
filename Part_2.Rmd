@@ -1,7 +1,197 @@
 ---
 title: 'Storytelling with R'
-output: html_document
+author: 'Jeff Chen and Star Ying, Commerce Data Service'
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    theme: cerulean
 ---
+
+<style>
+body{
+  font-family: HelveticaNeue-Light;
+}
+</style>
+
+#Part 1: 2D Visuals
+
+##ggplot2
+[*ggplot2*](http://ggplot2.org/)is a versatile and visually optimized library:
+
+- Simplified API versus vanilla R graphics API
+- Staple of data analysis process
+- Can be used for data storytelling as well
+- Produces well formed static visualizations
+- Useful in quickly wireframing an interactive visualization
+
+To get started, we'll need to first install and load the package. 
+```{r}
+#install ggplot2
+#install.packages('ggplot2')
+
+#load library
+library(ggplot2)
+```
+
+Within ggplot2, there are a number of datasets that are provided with the package to illustrate how to use the functionality. The *economics* dataset contains data from the US Bureau of Economic Analysis, US Census Bureau, and the US Bureau of Labor Statistics. *economics* is in wide form (e.g. each row represents a different day, each column contains a different variable). *economics_long*, a variant of the *economics* dataset, is provided in long or stacked form (e.g. each row represents a distinct combination of date and metric and variables are represented by two columns: a variable label and value). We'll rely on the *economics_long* dataset for the ggplot2 tutorial. For more explanation about wide and long form, take a look at [this UCLA tutorial](http://www.ats.ucla.edu/stat/r/faq/reshape.htm).
+
+```{r}
+#Wide form dataset
+  head(economics)
+
+#Long form dataset
+  head(economics_long)
+```
+
+The syntax for ggplot2 is as follows:
+
+- ggplot() initiates the function and accepts the dataset and variables
+- aes() controls aesthetics
+- geom_point() indicates the type of graph. This option can be swapped out for lines, points, bars among other forms
+
+```{r eval=F}
+#create a ggplot area and add specific geoms
+ggplot(data, aes(x,y,color,group)) + geom_point()
+```
+
+To put this to use,  we can run the following examples:
+```{r}
+#Line graph with economics_long
+  #x = date variable
+  #y = value to be graphed
+  #group = variable label since data is in long form
+ggplot(economics_long, aes(x=date, y=value01, color=variable, group=variable)) + geom_line()
+
+#example as area graphs
+ggplot(economics_long, aes(x=date, y=value01,color=variable, group=variable)) + geom_area()
+```
+
+
+```{r}
+#reshape your own tabular data
+#install reshape2
+#install.packages('reshape2')
+
+#load library
+library(reshape2)
+```
+
+```{r, eval=F}
+#command to change to long form
+new_var <- melt(dataframe, time_var)
+```
+
+```{r}
+#check example dataset
+  head(economics)
+
+#pick a variable you want to plot
+  head(economics[c(1,3)])
+
+#reshape data assigning to new dataset
+  economics_melt <- melt(economics[c(1,3)],'date')
+
+#check new set
+  head(economics_melt)
+
+```
+
+##datatables
+The *datatables* package builds interactive, searchable tables from dataframes:
+
+- Present tabular data in a searchable paginated table
+- Useful for presenting the cleaned raw data to the client
+- Convey the shape of data
+- Useful in connecting to subject matter knowledge
+- Useful in discussing specific cases
+
+To get started, let's install and load the *DT* library.
+```{r}
+#install DataTables
+#install.packages('DT')
+
+#load package
+  library(DT)
+```
+
+The datatable allows for stylized tables. But at a minimum, it just needs data.
+```{r, eval=F}
+#create interactive table
+datatable(data, options = list(), 
+  rownames, colnames, container, caption = NULL, 
+  filter = c("none", "bottom", "top"), 
+  ...)
+```
+
+Using the *economics* example, we can render a simple table as well as one with a max number of entries of 50.
+```{r}
+#simple example
+  datatable(economics)
+
+#customize page length
+  datatable(economics, options = list(pageLength = 50))
+```
+
+##Dygraphs
+
+- R interface to popular dygraphs javascript library
+- Useful in presenting time-series data interactive form
+- Automatically graphs xts time-series objects
+- Helpful in visualizing long time-series
+
+To get started, we need to install the *dygraphs* and *xts* packages. Note that *dygraphs* only accepts *xts* time series objects.
+```{r}
+#install dygraphs and xts
+#install.packages('dygraphs')
+#install.packages('xts')
+
+#load packages
+  library(dygraphs)
+  library(xts)
+```
+
+Syntax is fairly straight forward.
+```{r, eval=F}
+#convert dataframe to xts
+xts(x = NULL,
+    order.by = index(x),
+    frequency = NULL,
+    unique = TRUE,
+    tzone = Sys.getenv("TZ"),
+    ...)
+
+#create a dygraph
+dygraph(data, main = NULL, xlab = NULL, ylab = NULL,
+  periodicity = NULL,
+  group = NULL, width = NULL, height = NULL)
+```
+
+In practice, we'll need to take the *economics* dataset and placing it into *xts* form. That means specifying that the date value in the *economics* dataset is in fact a date ([additional resource](http://www.statmethods.net/input/dates.html)), then setting the date value in a dataframe and converting it into an xts format, as shown below.
+```{r}
+#convert string date to date format
+  date_me <- as.Date(economics$date, format='%Y-%m-%d')
+
+#combine with variable of interest: PCE
+  value_me <- data.frame(date_me, economics$pce)
+
+#convert data frame to xts format
+  plot_me <- xts(value_me, order.by=value_me[,1])
+```
+
+Once the data is in xts form, then we can drop the xts object into dygraphs.
+```{r}
+#call dygraph
+  dygraph(plot_me)
+```
+
+If we want to add some flare, we can add a range selector:
+```{r}
+#add some flare
+  dygraph(plot_me) %>% dyRangeSelector()
+```
+
+#Part 2: 3D Visuals
 
 ##Get data 
 In order to get the data for this tutorial, you'll need to get an API key to use the Census API service [here](http://api.census.gov/data/key_signup.html). Once you have it, assign the key to the variable *api_key*.
@@ -15,6 +205,7 @@ Now that you have the API key, run the following code that is available on the S
 source("https://raw.githubusercontent.com/CommerceDataService/cda_storytelling_in_r/gh-pages/get_data.R")
 
 ```
+
 ```{r echo=F, message=F, warning=F}
 api_key <- "d7771f8fdc9a6508ea49c78e59c79318e4f46476"
 source("https://raw.githubusercontent.com/CommerceDataService/cda_storytelling_in_r/gh-pages/get_data.R")
@@ -57,7 +248,12 @@ library(threejs)
                     renderer="canvas")
 ```
 
-How did we get to this?
+##Threejs
+How did we get to this? The *threejs* library can be used to:
+
+- Builds upon three.js visualization engine for web browsers
+- Accepts vectors, matrices and data frames to create different types of interactive visualizations:
+
 ```{r}
 
 #Load in Threejs library      
@@ -65,6 +261,7 @@ How did we get to this?
 ```
 
 We can see that there are direct relationships between unemployment, poverty and education attainment. But there isn't much detail and the graphs aren't pretty.
+
 ```{r}
         scatterplot3js(data$pct_unemp, data$pct_poverty,data$pct_hs_grad)
 ```
@@ -140,7 +337,7 @@ Let's add labels for each point that show up upon mousing over.
 
 In short, we can tell the following key insights from this graph.
 
-###Part 2: Maps
+##Maps with Leaflet
 Sometimes graphs don't get the point across. Maps, while over used, can provide some better indication of patterns. 
 
 Based on our 3-d graphs, we could see clustering of regions's economic performance. We can see the mess of points more clearly on a map. 
@@ -185,7 +382,12 @@ Based on our 3-d graphs, we could see clustering of regions's economic performan
 
 
 ###Getting started
-We can use the leaflet library to bring a geographic spin to the data. To initiate a map, we only need to open the leaflet library, then run the following:
+We can use the leaflet library to bring a geographic spin to the data: 
+
+- Builds upon leaflet.js to create interactive web maps
+- Functionality to take a dataset to map in minutes
+
+To initiate a map, we only need to open the leaflet library, then run the following:
 ```{r}
       library(leaflet)
       leaflet()  
@@ -305,4 +507,3 @@ We can run the same graph for *pct_unemp* by swapping out *pct_poverty*
                     popup = county_popup)     
         
 ```   
-```
